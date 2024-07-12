@@ -10,9 +10,9 @@
 
 -e file:.
 attrs==23.2.0
-    # via scape-util
+    # via scape-utils
 numpy==2.0.0
-    # via scape-util
+    # via scape-utils
     # via tifffile
 tifffile==2024.7.2
-    # via scape-util
+    # via scape-utils

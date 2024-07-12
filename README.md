@@ -1,3 +1,3 @@
-# scape-util
+# scape-utils
 
 Describe your project here.

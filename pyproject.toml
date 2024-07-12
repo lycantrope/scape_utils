@@ -1,5 +1,5 @@
 [project]
-name = "scape-util"
+name = "scape-utils"
 version = "0.1.0"
 description = "Add your description here"
 authors = [{ name = "Chung-Kuan Chen", email = "b97b01045@gmail.com" }]
@@ -13,13 +13,13 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = ["ruff>=0.5.1", "pytest>=8.2.2", "matplotlib>=3.9.1"]
+dev-dependencies = ["ruff>=0.5.1", "pytest>=8.2.2"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/scape_util"]
+packages = ["src/scape_utils"]
 
 [tool.ruff.lint]
 extend-select = ["I001"]

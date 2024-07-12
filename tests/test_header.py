@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from scape_util import ScapeImageDecoder, SCAPEVirtualStack
+from scape_utils import ScapeImageDecoder, SCAPEVirtualStack
 
 SAMPLE_PATH = Path(__file__).parent.joinpath("sample.3DU16")
 
@@ -65,3 +65,11 @@ def test_read_volume_fail(file):
     with pytest.raises(IndexError):
         with SCAPEVirtualStack(SAMPLE_PATH) as stack:
             stack.get_volume_raw(100)
+
+
+def test_read_volume_as_imagej(file):
+    with SCAPEVirtualStack(SAMPLE_PATH) as stack:
+        # This method should return 1 volume of image stack with format (1, Z, C, Y, X)
+        img = stack.get_imagej_volume(3)
+        assert img.ndim == 5
+        assert img.shape == (1, 2, 2, 2, 3)
