@@ -1,4 +1,3 @@
-import itertools
 import mmap
 import struct
 from io import BufferedReader
@@ -72,7 +71,6 @@ class ScapeImageDecoder(NamedTuple):
 
 @attrs.define
 class ScapeVirtualStack:
-
     filepath: Path
     header: ScapeImageDecoder = attrs.field(init=False)
 
@@ -97,7 +95,6 @@ class ScapeVirtualStack:
         conversion: Optional[str] = None,
         imagej: bool = False,
     ) -> npt.NDArray:
-
         T, C, Z, Y, X = self.header.shape
 
         bytes_per_volume = self.header.bytes_per_volume
@@ -222,9 +219,9 @@ class ScapeVirtualStack:
         T, C, Z, Y, X = self.header.shape
 
         def frames():
-            for chunk in itertools.batched(range(T), chunksize):
-                start = min(chunk)
-                end = max(chunk)
+            for start in range(0, T, chunksize):
+                start = start
+                end = min(start + chunksize - 1, T - 1)
                 stacks = self.get_multi_volumes(start, end, conversion, imagej=True)
                 stacks = np.expand_dims(stacks, 0)
                 for stack in stacks:
