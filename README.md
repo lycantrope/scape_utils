@@ -7,17 +7,18 @@
 To install `scape_utils`, use pip:
 
 ```bash
-pip install scape_utils
+pip install git+https://github.com/lycantrope/scape_util
 ```
 
 ## Usage
 
-To read a `.3DU16` file and manipulate its data, use the `ScapeVirtualStack` class. Below are examples of how to get raw volumes and ImageJ formatted volumes.
+To read a `.3DU16` file, use the `ScapeVirtualStack` class. Below are examples of how to get volumes and ImageJ formatted volumes.
 
 ```python
-from scape_utils import ScapeVirtualStack
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+from scape_utils import ScapeVirtualStack
 
 file_path = Path("path/to/your/file.3DU16")
 
@@ -34,7 +35,7 @@ with ScapeVirtualStack(file_path) as stack:
     # Get multiple stacks at once (from t0 to t10)
     volume_multi = stack.get_multi_volumes(0, 10)
 
-    # save all volume into ImageJ compatible tiff
+    # save all volumes into ImageJ compatible tiff
     stack.save_all_volumes_to_tiff(file_path.with_suffix(".tif"))
 
 ```
