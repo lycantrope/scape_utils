@@ -70,3 +70,11 @@ def test_read_volume_as_imagej(file):
         img = stack.get_imagej_volume(3)
         assert img.ndim == 5
         assert img.shape == (1, Z, C, Y, X)
+
+
+def test_save_all_volume(file: Path):
+    test_out = file.parent.joinpath("tmp")
+    test_out.mkdir(exist_ok=True)
+    out = test_out.joinpath(file.stem + ".tif")
+    with ScapeVirtualStack(SAMPLE_PATH) as stack:
+        stack.save_all_volume_to_tiff(out)
