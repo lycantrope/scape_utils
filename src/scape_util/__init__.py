@@ -48,15 +48,11 @@ class ScapeImageDecoder(NamedTuple):
         # newbyteorder is not inplace reassign is required.
         dt = dt.newbyteorder(">")
         _, C, Z, Y, X = self.shape
-        img = (
-            np.frombuffer(
-                raw,
-                dtype=dt,
-                count=self.pixels_per_volume,
-            )
-            .copy()
-            .reshape((C, Z, Y, X))
-        )
+        img = np.frombuffer(
+            raw,
+            dtype=dt,
+            count=self.pixels_per_volume,
+        ).reshape((C, Z, Y, X))
         return img
 
     @property
@@ -125,7 +121,9 @@ class SCAPEVirtualStack:
         lut = LUT_TABLE.get(conversion)
         if lut is None:
             warn(
-                f"Unsupported conversion: {conversion}, output the original format (uint16)"
+                UserWarning(
+                    f"Unsupported conversion: {conversion}, output the original format (uint16)"
+                )
             )
             return stack
 

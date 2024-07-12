@@ -52,7 +52,7 @@ def testing_not_exist(file):
 def test_readfile(file):
     test_out = file.parent.joinpath("tmp")
     test_out.mkdir(exist_ok=True)
-    with SCAPEVirtualStack(SAMPLE_PATH) as stack:
+    with SCAPEVirtualStack(SAMPLE_PATH) as stack, pytest.warns(UserWarning):
         for i in range(4):
             for fmt in ("org", "u8", "f32"):
                 out = test_out.joinpath(SAMPLE_PATH.stem + f"_t={i:0>5d}_{fmt}.tif")
