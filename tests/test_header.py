@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from scape_utils import ScapeImageDecoder, SCAPEVirtualStack
+from scape_utils import ScapeImageDecoder, ScapeVirtualStack
 
 SAMPLE_PATH = Path(__file__).parent.joinpath("sample.3DU16")
 
@@ -34,7 +34,7 @@ def file():
 
 
 def testing_parser(file):
-    with SCAPEVirtualStack(file) as stack:
+    with ScapeVirtualStack(file) as stack:
         v1 = stack.get_volume_raw(0)
         v2 = stack.get_volume_raw(1)
         np.testing.assert_equal(v1, v2)
@@ -49,7 +49,7 @@ def testing_not_exist(file):
 def test_readfile(file):
     test_out = file.parent.joinpath("tmp")
     test_out.mkdir(exist_ok=True)
-    with SCAPEVirtualStack(SAMPLE_PATH) as stack, pytest.warns(UserWarning):
+    with ScapeVirtualStack(SAMPLE_PATH) as stack, pytest.warns(UserWarning):
         for i in range(4):
             for fmt in ("org", "u8", "f32"):
                 out = test_out.joinpath(SAMPLE_PATH.stem + f"_t={i:0>5d}_{fmt}.tif")
@@ -60,12 +60,12 @@ def test_read_volume_fail(file):
     test_out = file.parent.joinpath("tmp")
     test_out.mkdir(exist_ok=True)
     with pytest.raises(IndexError):
-        with SCAPEVirtualStack(SAMPLE_PATH) as stack:
+        with ScapeVirtualStack(SAMPLE_PATH) as stack:
             stack.get_volume_raw(100)
 
 
 def test_read_volume_as_imagej(file):
-    with SCAPEVirtualStack(SAMPLE_PATH) as stack:
+    with ScapeVirtualStack(SAMPLE_PATH) as stack:
         # This method should return 1 volume of image stack with format (1, Z, C, Y, X)
         img = stack.get_imagej_volume(3)
         assert img.ndim == 5

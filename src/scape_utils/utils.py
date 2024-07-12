@@ -82,7 +82,7 @@ class ScapeImageDecoder(NamedTuple):
 
 
 @attrs.define
-class SCAPEVirtualStack:
+class ScapeVirtualStack:
 
     filepath: Path
     header: ScapeImageDecoder = attrs.field(init=False)

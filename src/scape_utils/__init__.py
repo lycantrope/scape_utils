@@ -1,3 +1,3 @@
-from scape_utils.utils import ScapeImageDecoder, SCAPEVirtualStack
+from scape_utils.utils import ScapeImageDecoder, ScapeVirtualStack
 
-__all__ = ["ScapeImageDecoder", "SCAPEVirtualStack"]
+__all__ = ["ScapeImageDecoder", "ScapeVirtualStack"]
