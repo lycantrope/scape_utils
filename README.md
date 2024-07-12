@@ -32,7 +32,11 @@ with ScapeVirtualStack(file_path) as stack:
     volume_ij = stack.get_volume(2, imagej=True)
 
     # Get multiple stacks at once (from t0 to t10)
-    volume_multi = stack.get_multi_volumes(0, 10)    
+    volume_multi = stack.get_multi_volumes(0, 10)
+
+    # save all volume into ImageJ compatible tiff
+    stack.save_all_volumes_to_tiff(file_path.with_suffix(".tif"))
+
 ```
 
 ## License
