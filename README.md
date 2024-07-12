@@ -22,19 +22,17 @@ from pathlib import Path
 file_path = Path("path/to/your/file.3DU16")
 
 with ScapeVirtualStack(file_path) as stack:
-    # show information of the stack
+    # show information
     print(stack)
 
-    # Get the 1st volume in raw format (TCZYX)
-    volume_0 = stack.get_volume_raw(0)
+    # Get the 1st volume in format (TCZYX)
+    volume_0 = stack.get_volume(0)
     
     # Get the 3rd volume in ImageJ format (TZCYX)
-    volume_ij = stack.get_imagej_volume(2)
+    volume_ij = stack.get_volume(2, imagej=True)
 
-    # Example assertions
-    assert volume_0.ndim == 5  # Ensure the volume has 5 dimensions
-    print(volume_0.shape)      # Print the shape of the volume
-    print(volume_ij.shape)     # Print the shape of the ImageJ formatted volume
+    # Get multiple stacks at once (from t0 to t10)
+    volume_multi = stack.get_multi_volumes(0, 10)    
 ```
 
 ## License
