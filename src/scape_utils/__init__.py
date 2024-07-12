@@ -42,6 +42,9 @@ class ScapeImageDecoder(NamedTuple):
         return cls(x_scale, y_scale, z_scale, n_frame, n_channel, depth, height, width)
 
     def get_volume(self, raf: mmap, index: int) -> npt.NDArray:
+        if (index < 0) | (index >= self.n_frame):
+            raise IndexError(f"Index is out of boundary: {index}")
+
         offset = 68 + index * self.bytes_per_volume
         raw = raf[offset : offset + self.bytes_per_volume]
         dt = np.dtype("u2")
@@ -100,9 +103,6 @@ class SCAPEVirtualStack:
         self.handler.close()
 
     def get_volume_raw(self, index: int) -> npt.NDArray:
-        if (index < 0) | (index >= self.header.n_frame):
-            raise IndexError(f"Index is out of boundary: {index}")
-
         return self.header.get_volume(self.raf, index)
 
     def get_imagej_volume(self, index: int, conversion=None):

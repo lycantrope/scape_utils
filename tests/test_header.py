@@ -7,28 +7,25 @@ from scape_utils import ScapeImageDecoder, SCAPEVirtualStack
 
 SAMPLE_PATH = Path(__file__).parent.joinpath("sample.3DU16")
 
+T, C, Z, Y, X = 11, 2, 3, 5, 7
+
 
 @pytest.fixture
 def file():
     if SAMPLE_PATH.exists():
         return SAMPLE_PATH
 
-    # _, z_scale, y_scale, x_scale
-    scale = (3, 0.9, 0.455, 0.455)
-    # _, T, C, Z, Y, X
-    metadata = (5, 4, 2, 2, 2, 3)
+    # 3, z_scale, y_scale, x_scale
+    z_scale, y_scale, x_scale = 0.9, 0.455, 0.455
+    scale = (3, z_scale, y_scale, x_scale)
+
+    # 5, T, C, Z, Y, X
+    metadata = (5, T, C, Z, Y, X)
+    # 1 volume of data
     # C, Z, Y, Z, [data...]
-    vol = "(2,2,2,3,1,2,3,4,5,6,0,0,0,0,0,0,7,8,9,10,11,12,2,2,2,2,2,2)"
-    vol = eval(vol)
-    raw = struct.pack(
-        ">i3d6i4i24H4i24H4i24H4i24H",
-        *scale,
-        *metadata,
-        *vol,
-        *vol,
-        *vol,
-        *vol,
-    )
+    data = [C, Z, Y, X, *range(C * Z * Y * X)]
+
+    raw = struct.pack(">i3d6i" + f"4i{C*Z*Y*X:d}H" * T, *scale, *metadata, *[*data] * T)
 
     with open(SAMPLE_PATH, "wb") as f:
         f.write(raw)
@@ -72,4 +69,4 @@ def test_read_volume_as_imagej(file):
         # This method should return 1 volume of image stack with format (1, Z, C, Y, X)
         img = stack.get_imagej_volume(3)
         assert img.ndim == 5
-        assert img.shape == (1, 2, 2, 2, 3)
+        assert img.shape == (1, Z, C, Y, X)
