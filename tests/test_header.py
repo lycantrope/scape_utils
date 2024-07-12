@@ -5,15 +5,15 @@ import numpy as np
 import pytest
 from scape_utils import ScapeImageDecoder, ScapeVirtualStack
 
-SAMPLE_PATH = Path(__file__).parent.joinpath("sample.3DU16")
 
 T, C, Z, Y, X = 11, 2, 3, 5, 7
 
 
 @pytest.fixture
 def file():
-    if SAMPLE_PATH.exists():
-        return SAMPLE_PATH
+    sample_path = Path(__file__).parent.joinpath("sample.3DU16")
+    if sample_path.is_file():
+        return sample_path
 
     # 3, z_scale, y_scale, x_scale
     z_scale, y_scale, x_scale = 0.9, 0.455, 0.455
@@ -27,10 +27,10 @@ def file():
 
     raw = struct.pack(">i3d6i" + f"4i{C*Z*Y*X:d}H" * T, *scale, *metadata, *[*data] * T)
 
-    with open(SAMPLE_PATH, "wb") as f:
+    with open(sample_path, "wb") as f:
         f.write(raw)
 
-    return SAMPLE_PATH
+    return sample_path
 
 
 def testing_parser(file):
@@ -65,7 +65,7 @@ def test_read_volume_fail(file):
 
 
 def test_read_volume_as_imagej(file):
-    with ScapeVirtualStack(SAMPLE_PATH) as stack:
+    with ScapeVirtualStack(file) as stack:
         # This method should return 1 volume of image stack with format (1, Z, C, Y, X)
         img = stack.get_imagej_volume(3)
         assert img.ndim == 5
