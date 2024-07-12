@@ -1,8 +1,9 @@
+import itertools
 import mmap
 import struct
 from io import BufferedReader
 from pathlib import Path
-from typing import NamedTuple, Union
+from typing import NamedTuple, Optional, Tuple, Union
 from warnings import warn
 
 import attrs
@@ -41,23 +42,6 @@ class ScapeImageDecoder(NamedTuple):
 
         return cls(x_scale, y_scale, z_scale, n_frame, n_channel, depth, height, width)
 
-    def get_volume(self, raf: mmap, index: int) -> npt.NDArray:
-        if (index < 0) | (index >= self.n_frame):
-            raise IndexError(f"Index is out of boundary: {index}")
-
-        offset = 68 + index * self.bytes_per_volume
-        raw = raf[offset : offset + self.bytes_per_volume]
-        dt = np.dtype("u2")
-        # newbyteorder is not inplace reassign is required.
-        dt = dt.newbyteorder(">")
-        _, C, Z, Y, X = self.shape
-        img = np.frombuffer(
-            raw,
-            dtype=dt,
-            count=self.pixels_per_volume,
-        ).reshape((C, Z, Y, X))
-        return img
-
     @property
     def bytes_per_xy(self) -> int:
         return self.height * self.width * 2
@@ -76,9 +60,14 @@ class ScapeImageDecoder(NamedTuple):
         return self.height * self.width * self.depth * self.n_channel
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, int, int, int, int]:
         # TCZYX
         return (self.n_frame, self.n_channel, self.depth, self.height, self.width)
+
+    @property
+    def scales(self) -> Tuple[float, float, float]:
+        # z, y, x
+        return (self.z_scale, self.y_scale, self.x_scale)
 
 
 @attrs.define
@@ -102,17 +91,97 @@ class ScapeVirtualStack:
         self.raf.close()
         self.handler.close()
 
-    def get_volume_raw(self, index: int) -> npt.NDArray:
-        return self.header.get_volume(self.raf, index)
+    def get_volume(
+        self,
+        index: int,
+        conversion: Optional[str] = None,
+        imagej: bool = False,
+    ) -> npt.NDArray:
 
-    def get_imagej_volume(self, index: int, conversion=None):
+        T, C, Z, Y, X = self.header.shape
 
-        # CZYX
-        stack = self.get_volume_raw(index)
+        bytes_per_volume = self.header.bytes_per_volume
+        pixels_per_volume = self.header.pixels_per_volume
+
+        if (index < 0) | (index >= T):
+            raise IndexError(f"Index is out of boundary: {index}")
+
+        gap = 16
+        offset = 52 + index * bytes_per_volume
+        raw = self.raf[offset + gap : offset + bytes_per_volume]
+
+        # newbyteorder is not inplace reassign is required.
+        dt = np.dtype("u2").newbyteorder(">")
+
+        stack = np.frombuffer(
+            raw,
+            dtype=dt,
+            count=pixels_per_volume,
+        ).reshape((C, Z, Y, X))
+
         # CZYX -> TCZYX
         stack = stack[np.newaxis, :, :, :, :]
-        # TCZYX -> TZCYX
-        stack = stack.transpose((0, 2, 1, 3, 4))
+
+        if imagej:
+            # TCZYX -> TZCYX
+            stack = stack.transpose((0, 2, 1, 3, 4))
+
+        if conversion is None:
+            return stack
+
+        # type conversion
+        lut = LUT_TABLE.get(conversion)
+        if lut is None:
+            warn(
+                UserWarning(
+                    f"Unsupported conversion: {conversion}, output the original format (uint16)"
+                )
+            )
+            return stack
+
+        return lut[stack]
+
+    def get_multi_volumes(
+        self,
+        start: int,
+        end: int,
+        conversion: Optional[str] = None,
+        imagej: bool = False,
+    ) -> npt.NDArray:
+        T, C, Z, Y, X = self.header.shape
+        bytes_per_volume = self.header.bytes_per_volume
+
+        if (start < 0) | (start >= T):
+            raise IndexError(f"Index is out of boundary: start={start}")
+
+        if (end < 0) | (end >= T):
+            raise IndexError(f"Index is out of boundary: end={end}")
+
+        if start > end:
+            start, end = end, start
+
+        T = end - start + 1
+
+        gap = 16
+        offset = 52 + start * bytes_per_volume
+
+        raw = self.raf[offset : offset + bytes_per_volume * T]
+
+        # newbyteorder is not inplace reassign is required.
+        dt = np.dtype("u2").newbyteorder(">")
+
+        stack = (
+            np.frombuffer(
+                raw,
+                dtype=dt,
+            )
+            .reshape((T, -1))[:, gap // 2 :]
+            .reshape((T, C, Z, Y, X))
+        )
+
+        if imagej:
+            # TCZYX -> TZCYX
+            stack = stack.transpose((0, 2, 1, 3, 4))
 
         if conversion is None:
             return stack
@@ -130,36 +199,40 @@ class ScapeVirtualStack:
         return lut[stack]
 
     def save_volume_to_tiff(self, path: Path, index: int, conversion=None):
-
-        stack = self.get_imagej_volume(index, conversion)
+        stack = self.get_volume(index, conversion=conversion, imagej=True)
         dtype = stack.dtype
-        _, C, Z, Y, X = self.header.shape
+        z_scale, y_scale, x_scale = self.header.scales
         tifffile.imwrite(
             path,
             stack,
             imagej=True,
-            shape=(1, Z, C, Y, X),
+            shape=stack.shape,
             dtype=dtype,
-            resolution=(1.0 / self.header.x_scale, 1.0 / self.header.y_scale),
+            resolution=(1.0 / x_scale, 1.0 / y_scale),
             metadata={
-                "spacing": self.header.z_scale,
+                "spacing": z_scale,
                 "unit": "um",
                 "axes": "TZCYX",
             },
             photometric="minisblack",
         )
 
-    def save_all_volume_to_tiff(self, path, conversion=None):
+    def save_all_volumes_to_tiff(self, path, conversion=None, chunksize=10):
         dtype = conversion or "u2"
         T, C, Z, Y, X = self.header.shape
 
-        frames = (
-            self.get_imagej_volume(idx, conversion)
-            for idx in range(self.header.n_frame)
-        )
+        def frames():
+            for chunk in itertools.batched(range(T), chunksize):
+                start = min(chunk)
+                end = max(chunk)
+                stacks = self.get_multi_volumes(start, end, conversion, imagej=True)
+                stacks = np.expand_dims(stacks, 0)
+                for stack in stacks:
+                    yield stack
+
         tifffile.imwrite(
             path,
-            frames,
+            frames(),
             imagej=True,
             resolution=(1.0 / self.header.x_scale, 1.0 / self.header.y_scale),
             metadata={

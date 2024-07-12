@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 from scape_utils import ScapeImageDecoder, ScapeVirtualStack
 
-
 T, C, Z, Y, X = 11, 2, 3, 5, 7
 
 
@@ -35,8 +34,8 @@ def file():
 
 def testing_parser(file: Path):
     with ScapeVirtualStack(file) as stack:
-        v1 = stack.get_volume_raw(0)
-        v2 = stack.get_volume_raw(1)
+        v1 = stack.get_volume(0)
+        v2 = stack.get_volume(1)
         np.testing.assert_equal(v1, v2)
 
 
@@ -61,13 +60,13 @@ def test_read_volume_fail(file: Path):
     test_out.mkdir(exist_ok=True)
     with pytest.raises(IndexError):
         with ScapeVirtualStack(file) as stack:
-            stack.get_volume_raw(100)
+            stack.get_volume(100)
 
 
 def test_read_volume_as_imagej(file: Path):
     with ScapeVirtualStack(file) as stack:
         # This method should return 1 volume of image stack with format (1, Z, C, Y, X)
-        img = stack.get_imagej_volume(3)
+        img = stack.get_volume(3, imagej=True)
         assert img.ndim == 5
         assert img.shape == (1, Z, C, Y, X)
 
@@ -77,4 +76,38 @@ def test_save_all_volume(file: Path):
     test_out.mkdir(exist_ok=True)
     out = test_out.joinpath(file.stem + ".tif")
     with ScapeVirtualStack(file) as stack:
-        stack.save_all_volume_to_tiff(out)
+        stack.save_all_volumes_to_tiff(out)
+
+
+def test_save_all_volume_with_small_chunk(file: Path):
+    test_out = file.parent.joinpath("tmp")
+    test_out.mkdir(exist_ok=True)
+    out = test_out.joinpath(file.stem + ".tif")
+    with ScapeVirtualStack(file) as stack:
+        stack.save_all_volumes_to_tiff(out, chunksize=1)
+
+
+def test_read_volumes(file: Path):
+    test_out = file.parent.joinpath("tmp")
+    test_out.mkdir(exist_ok=True)
+    with ScapeVirtualStack(file) as stack:
+        T, C, Z, Y, X = stack.header.shape
+        imgs = stack.get_multi_volumes(0, 10)
+        assert imgs.shape == (11, C, Z, Y, X)
+        imgs = stack.get_multi_volumes(0, 10, imagej=True)
+        assert imgs.shape == (11, Z, C, Y, X)
+
+
+def test_read_volume_out_of_bound(file: Path):
+    test_out = file.parent.joinpath("tmp")
+    test_out.mkdir(exist_ok=True)
+    with ScapeVirtualStack(file) as stack, pytest.raises(IndexError):
+        T, C, Z, Y, X = stack.header.shape
+        stack.get_volume(T + 100)
+
+
+def test_read_multi_volumes_out_of_bound(file: Path):
+    test_out = file.parent.joinpath("tmp")
+    test_out.mkdir(exist_ok=True)
+    with ScapeVirtualStack(file) as stack, pytest.raises(IndexError):
+        stack.get_multi_volumes(stack.header.n_frame + 100, 0)
