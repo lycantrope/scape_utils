@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from scape_utils import ScapeImageDecoder, ScapeVirtualStack
 
-T, C, Z, Y, X = 11, 2, 3, 5, 7
+T, C, Z, Y, X = 31, 2, 3, 5, 7
 
 
 @pytest.fixture
@@ -24,7 +24,12 @@ def file():
     # C, Z, Y, Z, [data...]
     data = [C, Z, Y, X, *range(C * Z * Y * X)]
 
-    raw = struct.pack(">i3d6i" + f"4i{C*Z*Y*X:d}H" * T, *scale, *metadata, *[*data] * T)
+    raw = struct.pack(
+        ">i3d6i" + f"4i{C*Z*Y*X:d}H" * T,
+        *scale,
+        *metadata,
+        *[d + i for i in range(T) for d in data],
+    )
 
     with open(sample_path, "wb") as f:
         f.write(raw)
@@ -36,7 +41,7 @@ def testing_parser(file: Path):
     with ScapeVirtualStack(file) as stack:
         v1 = stack.get_volume(0)
         v2 = stack.get_volume(1)
-        np.testing.assert_equal(v1, v2)
+        np.testing.assert_equal(v2 - v1, np.ones_like(v1))
 
 
 def testing_not_exist(file: Path):
