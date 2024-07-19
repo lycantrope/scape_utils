@@ -1,15 +1,27 @@
+from __future__ import annotations
+
+__all__ = [
+    "ScapeImageDecoder",
+    "ScapeVirtualStack",
+]
+
 import itertools
 import mmap
+import os
 import struct
 from io import BufferedReader
 from pathlib import Path
-from typing import NamedTuple, Optional, Tuple, Union
+from typing import TYPE_CHECKING
 from warnings import warn
 
 import attrs
 import numpy as np
-import numpy.typing as npt
 import tifffile
+
+if TYPE_CHECKING:
+    from typing import Literal, NamedTuple, Optional, Tuple
+
+    from numpy.typing import NDArray
 
 LUT_TABLE = {
     "u8": np.floor(np.arange(65536) / 256).astype(np.uint8),
@@ -28,12 +40,13 @@ class ScapeImageDecoder(NamedTuple):
     width: int
 
     @classmethod
-    def from_3DU16(cls, file: Union[str, Path]) -> "ScapeImageDecoder":
-        if file.suffix.lower() != ".3du16":
-            raise TypeError(f"Only support (*.3d16 or *.3DU16): {file.name}")
+    def from_3DU16(cls, filename: os.PathLike | str) -> "ScapeImageDecoder":
+        filename = Path(filename)
+        if filename.suffix.lower() != ".3du16":
+            raise TypeError(f"Only support (*.3d16 or *.3DU16): {filename.name}")
         try:
             # skip bytes from 0 to 3 and 28-31
-            raw = Path(file).open("rb").read(52)
+            raw = filename.open("rb").read(52)
             vals = struct.unpack(">i3d6i", raw)
             (z_scale, y_scale, x_scale) = vals[1:4]
             (n_frame, n_channel, depth, height, width) = vals[5:10]
@@ -94,9 +107,9 @@ class ScapeVirtualStack:
     def get_volume(
         self,
         index: int,
-        conversion: Optional[str] = None,
+        conversion: Optional[Literal["u8", "f32", "u16"]] = None,
         imagej: bool = False,
-    ) -> npt.NDArray:
+    ) -> NDArray[np.ScalarType]:
 
         T, C, Z, Y, X = self.header.shape
 
@@ -145,9 +158,9 @@ class ScapeVirtualStack:
         self,
         start: int,
         end: int,
-        conversion: Optional[str] = None,
+        conversion: Optional[Literal["u8", "f32", "u16"]] = None,
         imagej: bool = False,
-    ) -> npt.NDArray:
+    ) -> NDArray[np.ScalarType]:
         T, C, Z, Y, X = self.header.shape
         bytes_per_volume = self.header.bytes_per_volume
 
@@ -183,7 +196,7 @@ class ScapeVirtualStack:
             # TCZYX -> TZCYX
             stack = stack.transpose((0, 2, 1, 3, 4))
 
-        if conversion is None:
+        if conversion is None or conversion == "u16":
             return stack
 
         # type conversion
@@ -198,12 +211,17 @@ class ScapeVirtualStack:
 
         return lut[stack]
 
-    def save_volume_to_tiff(self, path: Path, index: int, conversion=None):
+    def save_volume_to_tiff(
+        self,
+        filename: os.PathLike | str,
+        index: int,
+        conversion: Optional[Literal["u8", "f32", "u16"]] = None,
+    ):
         stack = self.get_volume(index, conversion=conversion, imagej=True)
         dtype = stack.dtype
         z_scale, y_scale, x_scale = self.header.scales
         tifffile.imwrite(
-            path,
+            filename,
             stack,
             imagej=True,
             shape=stack.shape,
@@ -217,7 +235,12 @@ class ScapeVirtualStack:
             photometric="minisblack",
         )
 
-    def save_all_volumes_to_tiff(self, path, conversion=None, chunksize=10):
+    def save_all_volumes_to_tiff(
+        self,
+        filename: os.PathLike | str,
+        conversion: Optional[Literal["u8", "f32", "u16"]] = None,
+        chunksize: int = 10,
+    ):
         dtype = conversion or "u2"
         T, C, Z, Y, X = self.header.shape
 
@@ -231,7 +254,7 @@ class ScapeVirtualStack:
                     yield stack
 
         tifffile.imwrite(
-            path,
+            filename,
             frames(),
             imagej=True,
             resolution=(1.0 / self.header.x_scale, 1.0 / self.header.y_scale),
