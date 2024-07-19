@@ -10,7 +10,7 @@ import os
 import struct
 from io import BufferedReader
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 from warnings import warn
 
 import attrs
@@ -18,7 +18,7 @@ import numpy as np
 import tifffile
 
 if TYPE_CHECKING:
-    from typing import Literal, NamedTuple, Optional, Tuple
+    from typing import Literal, Optional, Tuple
 
     from numpy.typing import NDArray
 
