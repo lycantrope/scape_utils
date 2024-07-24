@@ -3,7 +3,12 @@ name = "scape-utils"
 version = "0.1.0"
 description = "A simple package to read SCAPE 3D image (3DU16)"
 authors = [{ name = "Chung-Kuan Chen", email = "b97b01045@gmail.com" }]
-dependencies = ["numpy>=2.0.0", "attrs>=23.2.0", "tifffile>=2024.7.2"]
+dependencies = [
+    "numpy>=2.0.0",
+    "attrs>=23.2.0",
+    "tifffile>=2024.7.2",
+    "h5py>=3.11.0",
+]
 readme = "README.md"
 requires-python = ">= 3.8"
 urls = { github = "https://github.com/lycantrope/scape_utils" }
@@ -14,7 +19,11 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = ["ruff>=0.5.1", "pytest>=8.2.2"]
+dev-dependencies = [
+    "ruff>=0.5.1",
+    "pytest>=8.2.2",
+    "ipython>=8.26.0",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true
