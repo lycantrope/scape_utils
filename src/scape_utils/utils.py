@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, NamedTuple
 from warnings import warn
 
 import attrs
+import h5py
 import numpy as np
 import tifffile
 
@@ -91,6 +92,7 @@ class ScapeVirtualStack:
     handler: BufferedReader = attrs.field(init=False, default=None, repr=False)
 
     def __attrs_post_init__(self):
+        self.filepath = Path(self.filepath)
         self.header = ScapeImageDecoder.from_3DU16(self.filepath)
 
     def __enter__(self):
@@ -239,7 +241,7 @@ class ScapeVirtualStack:
         conversion: Optional[Literal["u8", "f32", "u16"]] = None,
         chunksize: int = 10,
     ):
-        dtype = conversion or "u2"
+        dtype = LUT_TABLE.get(conversion, np.array((), dtype=np.uint16)).dtype
         T, C, Z, Y, X = self.header.shape
 
         def frames():
@@ -265,3 +267,28 @@ class ScapeVirtualStack:
             shape=(T, Z, C, Y, X),
             dtype=dtype,
         )
+
+    def save_all_volumes_to_hdf(
+        self,
+        filename: os.PathLike | str,
+        conversion: Optional[Literal["u8", "f32", "u16"]] = None,
+        chunksize: int = 10,
+    ):
+        dtype = LUT_TABLE.get(conversion, np.array((), dtype=np.uint16)).dtype
+
+        T, C, Z, Y, X = self.header.shape
+
+        for start in range(0, T, chunksize):
+            start = start
+            end = min(start + chunksize - 1, T - 1)
+            stacks = self.get_multi_volumes(start, end, conversion, imagej=True)
+            for stack in stacks:
+                yield stack
+
+        with h5py.File(filename, "w") as f:
+            dset = f.create_dataset("data", (T, Z, C, Y, X), dtype, compression="lzf")
+            for start in range(0, T, chunksize):
+                start = start
+                end = min(start + chunksize - 1, T - 1)
+                stacks = self.get_multi_volumes(start, end, conversion, imagej=True)
+                dset[start : end + 1, :, :, :, :] = stacks

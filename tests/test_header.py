@@ -116,3 +116,11 @@ def test_read_multi_volumes_out_of_bound(file: Path):
     test_out.mkdir(exist_ok=True)
     with ScapeVirtualStack(file) as stack, pytest.raises(IndexError):
         stack.get_multi_volumes(stack.header.n_frame + 100, 0)
+
+
+def test_save_all_volume_via_hdf(file: Path):
+    test_out = file.parent.joinpath("tmp")
+    test_out.mkdir(exist_ok=True)
+    out = test_out.joinpath(file.stem + ".h5")
+    with ScapeVirtualStack(file) as stack:
+        stack.save_all_volumes_to_hdf(out)
