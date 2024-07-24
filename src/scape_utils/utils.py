@@ -278,13 +278,6 @@ class ScapeVirtualStack:
 
         T, C, Z, Y, X = self.header.shape
 
-        for start in range(0, T, chunksize):
-            start = start
-            end = min(start + chunksize - 1, T - 1)
-            stacks = self.get_multi_volumes(start, end, conversion, imagej=True)
-            for stack in stacks:
-                yield stack
-
         with h5py.File(filename, "w") as f:
             dset = f.create_dataset("data", (T, Z, C, Y, X), dtype, compression="lzf")
             for start in range(0, T, chunksize):
