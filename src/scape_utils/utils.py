@@ -19,7 +19,7 @@ import numpy as np
 import tifffile
 
 if TYPE_CHECKING:
-    from typing import Literal, Optional, Tuple
+    from typing import Literal, Optional, Tuple, Union
 
     from numpy.typing import NDArray
 
@@ -109,7 +109,7 @@ class ScapeVirtualStack:
         index: int,
         conversion: Optional[Literal["u8", "f32", "u16"]] = None,
         imagej: bool = False,
-    ) -> NDArray[np.ScalarType]:
+    ) -> Union[NDArray[np.uint8], NDArray[np.uint16], NDArray[np.float32]]:
 
         T, C, Z, Y, X = self.header.shape
 
@@ -160,7 +160,7 @@ class ScapeVirtualStack:
         end: int,
         conversion: Optional[Literal["u8", "f32", "u16"]] = None,
         imagej: bool = False,
-    ) -> NDArray[np.ScalarType]:
+    ) -> Union[NDArray[np.uint8], NDArray[np.uint16], NDArray[np.float32]]:
         T, C, Z, Y, X = self.header.shape
         bytes_per_volume = self.header.bytes_per_volume
 
