@@ -110,7 +110,6 @@ class ScapeVirtualStack:
         conversion: Optional[Literal["u8", "f32", "u16"]] = None,
         imagej: bool = False,
     ) -> Union[NDArray[np.uint8], NDArray[np.uint16], NDArray[np.float32]]:
-
         T, C, Z, Y, X = self.header.shape
 
         bytes_per_volume = self.header.bytes_per_volume

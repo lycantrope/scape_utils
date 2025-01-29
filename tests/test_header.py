@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+
 from scape_utils import ScapeImageDecoder, ScapeVirtualStack
 
 T, C, Z, Y, X = 31, 2, 3, 5, 7
@@ -25,7 +26,7 @@ def file():
     data = [C, Z, Y, X, *range(C * Z * Y * X)]
 
     raw = struct.pack(
-        ">i3d6i" + f"4i{C*Z*Y*X:d}H" * T,
+        ">i3d6i" + f"4i{C * Z * Y * X:d}H" * T,
         *scale,
         *metadata,
         *[d + i for i in range(T) for d in data],
