@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from scape_utils import ScapeImageDecoder, ScapeVirtualStack
+from scape_utils import ScapeImageHeader, ScapeVirtualStack
 
 T, C, Z, Y, X = 31, 2, 3, 5, 7
 
@@ -48,7 +48,7 @@ def testing_parser(file: Path):
 def testing_not_exist(file: Path):
     data_path = file.with_name("not_exists.3du16")
     with pytest.raises(FileNotFoundError):
-        print(ScapeImageDecoder.from_3DU16(data_path))
+        print(ScapeImageHeader.from_3DU16(data_path))
 
 
 def test_readfile(file: Path):

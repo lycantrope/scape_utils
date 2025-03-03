@@ -10,7 +10,7 @@ from numpy.typing import NDArray
 
 LUT_TABLE: Dict[str, NDArray]
 
-class ScapeImageDecoder(NamedTuple):
+class ScapeImageHeader(NamedTuple):
     x_scale: float
     y_scale: float
     z_scale: float
@@ -20,7 +20,7 @@ class ScapeImageDecoder(NamedTuple):
     height: int
     width: int
     @classmethod
-    def from_3DU16(cls, filename: os.PathLike | str) -> "ScapeImageDecoder": ...
+    def from_3DU16(cls, filename: os.PathLike | str) -> "ScapeImageHeader": ...
     @property
     def bytes_per_xy(self) -> int: ...
     @property
@@ -37,7 +37,7 @@ class ScapeImageDecoder(NamedTuple):
 @attrs.define
 class ScapeVirtualStack:
     filepath: Path
-    header: ScapeImageDecoder = attrs.field(init=False)
+    header: ScapeImageHeader = attrs.field(init=False)
 
     raf: mmap.mmap = attrs.field(init=False, default=None, repr=False)
     handler: BufferedReader = attrs.field(init=False, default=None, repr=False)

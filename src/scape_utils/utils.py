@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 __all__ = [
-    "ScapeImageDecoder",
+    "ScapeImageHeader",
     "ScapeVirtualStack",
 ]
 
@@ -29,7 +29,7 @@ LUT_TABLE = {
 }
 
 
-class ScapeImageDecoder(NamedTuple):
+class ScapeImageHeader(NamedTuple):
     x_scale: float
     y_scale: float
     z_scale: float
@@ -40,7 +40,7 @@ class ScapeImageDecoder(NamedTuple):
     width: int
 
     @classmethod
-    def from_3DU16(cls, filename: os.PathLike | str) -> "ScapeImageDecoder":
+    def from_3DU16(cls, filename: os.PathLike | str) -> "ScapeImageHeader":
         filename = Path(filename)
         if filename.suffix.lower() != ".3du16":
             raise TypeError(f"Only support (*.3d16 or *.3DU16): {filename.name}")
@@ -86,14 +86,14 @@ class ScapeImageDecoder(NamedTuple):
 @attrs.define
 class ScapeVirtualStack:
     filepath: Path
-    header: ScapeImageDecoder = attrs.field(init=False)
+    header: ScapeImageHeader = attrs.field(init=False)
 
     raf: mmap.mmap = attrs.field(init=False, default=None, repr=False)
     handler: BufferedReader = attrs.field(init=False, default=None, repr=False)
 
     def __attrs_post_init__(self):
         self.filepath = Path(self.filepath)
-        self.header = ScapeImageDecoder.from_3DU16(self.filepath)
+        self.header = ScapeImageHeader.from_3DU16(self.filepath)
 
     def __enter__(self):
         self.handler = open(self.filepath, "rb")
